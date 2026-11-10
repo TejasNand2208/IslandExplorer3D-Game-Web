@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Island Explorer 3D - Samudragrah</title>
+<link rel="icon" type="image/png" href="assets/icon.png">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b2a3a; font-family: Arial, Helvetica, sans-serif; color: #fff; user-select: none; }
+  canvas#game { display: block; width: 100vw; height: 100vh; }
+  .hidden { display: none !important; }
+  .panel { background: rgba(0,0,0,.45); border-radius: 8px; padding: 8px 14px; text-shadow: 0 1px 3px #000; }
+  #hud { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+  #hud > div { position: absolute; }
+  #items { top: 10px; left: 10px; font-size: 20px; }
+  #quest { top: 10px; right: 10px; font-size: 18px; width: 300px; white-space: pre-line; }
+  #prompt { bottom: 110px; left: 50%; transform: translateX(-50%); font-size: 26px; text-shadow: 0 2px 4px #000; }
+  #toast { top: 18%; left: 50%; transform: translateX(-50%); font-size: 24px; color: #ffeb85; text-shadow: 0 2px 4px #000; text-align: center; max-width: 70%; }
+  #clickhint { bottom: 60px; left: 50%; transform: translateX(-50%); font-size: 20px; color: #bfe8ff; }
+  #minimap { bottom: 10px; left: 10px; padding: 4px; }
+  #minimap canvas { display: block; border-radius: 4px; }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+  #loading { background: #0b2a3a; z-index: 20; font-size: 22px; }
+  #menu { background: radial-gradient(ellipse at center, rgba(8,70,95,.55), rgba(3,25,35,.9)); z-index: 10; }
+  #pause { background: rgba(0,0,0,.65); z-index: 10; }
+  #inventory { background: rgba(0,0,0,.35); z-index: 9; }
+  #invBox { background: rgba(0,0,0,.85); padding: 20px 50px; border-radius: 10px; text-align: center; font-size: 26px; line-height: 1.7; }
+  #logo { width: min(900px, 92vw); max-height: 40vh; object-fit: contain; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.65); margin-bottom: 6px; }
+  #loadLogo { width: 340px; border-radius: 10px; margin-bottom: 10px; }
+  .island { font-size: 22px; letter-spacing: 2px; color: #cfeeff; text-shadow: 0 2px 5px #000; }
+  .bharat { display: flex; align-items: center; gap: 16px; margin: 2px 0; }
+  .bharat img { height: 74px; border-radius: 10px; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
+  .sanskrit { font-size: 30px; font-weight: bold; color: #ffd36b; text-shadow: 0 2px 6px #000; letter-spacing: 1px;
+              font-family: 'Nirmala UI', 'Mangal', 'Noto Sans Devanagari', 'Kohinoor Devanagari', 'Arial Unicode MS', sans-serif; }
+  #letterbox div { position: fixed; left: 0; right: 0; height: 9vh; background: #000; z-index: 2; pointer-events: none; }
+  #letterbox div:first-child { top: 0; } #letterbox div:last-child { bottom: 0; }
+  .mapcap { font-size: 12px; letter-spacing: 3px; text-align: center; color: #ffe7a0; padding-bottom: 3px; text-shadow: 0 1px 2px #000; }
+  .credit { margin-top: 14px; font-size: 18px; letter-spacing: 1px; color: #ffe9a8; text-shadow: 0 2px 5px #000; }
+  h2 { font-size: 44px; margin: 0 0 10px; }
+  button { width: 290px; padding: 12px; font-size: 21px; color: #fff; background: #1d6a82; border: 2px solid #5ec0da; border-radius: 8px; cursor: pointer; }
+  button:hover:not(:disabled) { background: #2b8fae; }
+  button:disabled { opacity: .45; cursor: default; }
+  .controls { font-size: 16px; color: #cde; margin-top: 18px; text-align: center; line-height: 1.6; }
+  .settings { font-size: 16px; display: grid; grid-template-columns: auto 160px; gap: 6px 12px; align-items: center; margin-top: 8px; }
+  .settings select, .settings input { width: 100%; }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="letterbox" class="hidden"><div></div><div></div></div>
+
+<div id="hud" class="hidden">
+  <div id="items" class="panel"></div>
+  <div id="quest" class="panel"></div>
+  <div id="prompt"></div>
+  <div id="toast"></div>
+  <div id="clickhint" class="hidden">Click the game to capture the mouse</div>
+  <div id="minimap" class="panel"><div class="mapcap">SAMUDRAGRAH</div><canvas id="mapcanvas" width="240" height="131"></canvas></div>
+</div>
+
+<div id="inventory" class="overlay hidden">
+  <div id="invBox"><b>INVENTORY</b><div id="invList"></div><div style="font-size:15px;color:#aaa">Tab to close</div></div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <h2>PAUSED</h2>
+  <button id="bResume">Resume</button>
+  <button id="bSave">Save Game</button>
+  <button id="bLoad">Load Game</button>
+  <button id="bMenu">Main Menu</button>
+  <div class="settings">
+    <span>Music</span><input id="sMusic" type="range" min="0" max="1" step="0.05">
+    <span>Sound FX</span><input id="sSfx" type="range" min="0" max="1" step="0.05">
+    <span>Render quality</span><select id="sQuality"><option value="0.5">Low (fastest)</option><option value="0.75">Medium</option><option value="1">High</option></select>
+    <span>Shadows</span><input id="sShadows" type="checkbox">
+  </div>
+</div>
+
+<div id="menu" class="overlay hidden">
+  <img id="logo" src="assets/logo.jpg" alt="Island Explorer 3D">
+  <div class="island">Welcome to <b>Samudragrah</b></div>
+  <div class="bharat"><img src="assets/bharat.jpg" alt="Make in India"><div class="sanskrit">पूर्णतः भारतीयम् उद्यमम्</div></div>
+  <button id="bNew">New Game</button>
+  <button id="bContinue">Continue</button>
+  <div class="controls">WASD Move &nbsp;|&nbsp; Shift Run &nbsp;|&nbsp; Space Jump &nbsp;|&nbsp; Mouse Look<br>E Interact &nbsp;|&nbsp; Tab Inventory &nbsp;|&nbsp; M Map &nbsp;|&nbsp; V Camera &nbsp;|&nbsp; Esc Pause</div>
+  <div class="credit">Made by Tejas Nand &nbsp;X&nbsp; BharatGen AI</div>
+</div>
+
+<div id="loading" class="overlay"><img id="loadLogo" src="assets/logo.jpg" alt=""><div id="loadText">Loading...</div></div>
+
+<script type="module" src="js/game.js"></script>
+</body>
+</html>
