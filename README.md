@@ -6,7 +6,7 @@
 
 A third-person 3D island adventure that runs **in your browser** — no GPU, no install.
 
-[▶ **Play the game**](https://YOUR-USERNAME.github.io/YOUR-REPO/)
+[▶ **Play the game**](https://TejasNand2208.github.io/IslandExplorer3D-Game-Web/)
 
 </div>
 
