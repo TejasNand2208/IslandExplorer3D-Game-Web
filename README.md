@@ -75,7 +75,7 @@ Built with [Three.js](https://threejs.org/) and plain JavaScript.
 
 ## Credits
 
-**Made by Tejas Nand × Meta AI**
+**Made by Tejas Nand × BharatGen AI**
 
 - Character and animations: [Mixamo](https://www.mixamo.com/) (Adobe). Please respect the Mixamo license — the character and animation files are for use in this game and should not be redistributed on their own.
 - Three.js — MIT License.
